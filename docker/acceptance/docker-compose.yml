@@ -1,0 +1,21 @@
+version: '2'
+services:
+  payment-ms:
+    image: aabanegas/payment
+    entrypoint: [ "dockerize", "-timeout", "100s", "-wait",  "tcp://kafka:9092", "-wait", "tcp://zookeeper:2181",  "-wait", "tcp://cassandra:9042", "/entrypoint.sh", "payment-ms" ]
+    ports:
+      - "8091:8091"
+    depends_on:
+      - cassandra
+      - zookeeper
+    environment:
+      - KAFKA_BROKERLIST=kafka:9092
+      - server.port=8091
+      - spring.cloud.stream.kafka.binder.brokers=kafka:9092
+      - spring.profiles.active=docker,cassandra
+  zookeeper:
+    image: confluent/zookeeper:3.4.6-cp1
+  cassandra:
+    image: cassandra
+    ports:
+      - "9042:9042"

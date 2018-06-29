@@ -1,0 +1,81 @@
+server:
+  port: 8083
+
+spring:
+  cloud:
+    stream:
+      bindings:
+        sleuth:
+          destination: sleuth
+          content-type: application/json
+        output:
+          destination: payment_business
+          content-type: application/json
+      kafka:
+        binder:
+          auto-create-topics: false
+  profiles:
+    active: default
+com:
+  aabanegas:
+    payments:
+      security:
+        jwt:
+          secret: my-secret-change-on-production
+          signing-key-base64: test-key
+          user-claim: clientRef
+      eventtemplate:
+        app-version: 0.0.1
+        prefix: payment
+        enabled-channels: audit
+eureka:
+  client:
+    enabled: false
+logging:
+  file: ${spring.application.name}.log
+management:
+  port: 1${server.port}
+---
+spring:
+  profiles: docker,acceptance
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ${DOCKER_HOST_IP:192.168.99.100}:9092
+cassandra:
+  contact-points: ${DOCKER_HOST_IP:192.168.99.100}
+  create-keyspace: true
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka
+  instance:
+    metadata-map:
+      management.port: ${management.port}
+
+---
+spring:
+  profiles: cassandra
+  data:
+    jpa:
+      repositories:
+        enabled: false
+cassandra:
+  port: 9042
+  keyspace-name: payment_keyspace
+  enabled: true
+---
+spring:
+  profiles: H2
+  jpa:
+    database: H2
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_ON_EXIT=FALSE
+    initialize: false
+---
+spring:
+  profiles: eureka
+eureka:
+  client:
+    enabled: true
