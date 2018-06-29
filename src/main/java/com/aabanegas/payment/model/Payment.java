@@ -15,21 +15,22 @@ import javax.validation.constraints.NotNull;
 @ToString
 public class Payment {
 
+	@NotNull
+    private String clientRef;
+	
     @Valid
     @NotNull
-    private AccountReference debitAccount;
-    @Valid
-    @NotNull
-    private AccountReference creditAccount;
+    private CreditCard creditCard;
+    
     @NotNull
     private Double amount;
 
-    //TODO: add timestamp
-
     @JsonCreator
-    public Payment(@JsonProperty("debitAccount") AccountReference debitAccount, @JsonProperty("creditAccount") AccountReference creditAccount, @JsonProperty("amount") Double amount) {
-        this.debitAccount = debitAccount;
-        this.creditAccount = creditAccount;
+    public Payment(@JsonProperty("clientRef") String clientRef,
+    					@JsonProperty("creditCard") CreditCard creditCard, 
+    					@JsonProperty("amount") Double amount) {
+    		this.clientRef = clientRef;
+        this.creditCard = creditCard;
         this.amount = amount;
     }
 }

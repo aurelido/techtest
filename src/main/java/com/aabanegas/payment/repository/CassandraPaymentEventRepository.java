@@ -23,10 +23,11 @@ public class CassandraPaymentEventRepository implements PaymentEventRepository {
 
     @Override
     public PaymentEvent save(PaymentEvent paymentEvent) {
-        Insert insert = QueryBuilder.insertInto("paymentevent")
-                .value("iban", paymentEvent.getIban())
-                .value("insertdate", paymentEvent.getInsertDate())
-                .value("paymenteventtype", paymentEvent.getPaymentEventType().name())
+        Insert insert = QueryBuilder.insertInto("payments")
+        			.value("uuid", paymentEvent.getUuid())
+                .value("clientref", paymentEvent.getClientRef())
+                .value("execdate", paymentEvent.getExecutionTime())
+                .value("creditcard", paymentEvent.getCardNumber())
                 .value("amount", paymentEvent.getAmount())
                 .ifNotExists();
 

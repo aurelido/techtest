@@ -13,18 +13,21 @@ import java.io.Serializable;
 @EqualsAndHashCode
 @ToString
 public class PaymentCompleteEvent implements Serializable {
-
+	private static final long serialVersionUID = 1L;
+	
+	@NotNull
+    private String clientRef;
     @NotNull
-    private AccountReference debitAccount;
-    @NotNull
-    private AccountReference creditAccount;
+    private CreditCard creditCard;
     @NotNull
     private Double amount;
 
     @JsonCreator
-    public PaymentCompleteEvent(@JsonProperty("debitAccount") AccountReference debitAccount, @JsonProperty("creditAccount") AccountReference creditAccount, @JsonProperty("amount") Double amount) {
-        this.debitAccount = debitAccount;
-        this.creditAccount = creditAccount;
+    public PaymentCompleteEvent(@JsonProperty("clientRef") String clientRef, 
+    				@JsonProperty("creditAccount") CreditCard creditCard, 
+    				@JsonProperty("amount") Double amount) {
+        this.clientRef = clientRef;
+        this.creditCard = creditCard;
         this.amount = amount;
     }
 }

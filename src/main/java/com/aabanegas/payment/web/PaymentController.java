@@ -39,7 +39,7 @@ public class PaymentController {
 	public Payment processPayment(@Valid @RequestBody Payment payment) {
 
     	logger.info("Processing payment: " + payment);
-        paymentService.makePayment(payment.getDebitAccount(), payment.getCreditAccount(), payment.getAmount());
+        paymentService.makePayment(payment.getClientRef(), payment.getCreditCard(), payment.getAmount());
         return payment;
     }
     
