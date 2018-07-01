@@ -1,7 +1,5 @@
 package com.aabanegas.payment.service;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.sleuth.Span;
 import org.springframework.cloud.sleuth.Tracer;
@@ -15,11 +13,12 @@ import com.aabanegas.payment.model.PaymentCompleteEvent;
 import com.aabanegas.payment.model.PaymentEvent;
 import com.aabanegas.payment.repository.PaymentEventRepository;
 
+import lombok.extern.apachecommons.CommonsLog;
+
+@CommonsLog
 @EnableBinding(Source.class)
 @Component
 public class PaymentService {
-
-    private static final Log LOGGER = LogFactory.getLog(PaymentService.class);
 
     private final Source source;
 
@@ -44,7 +43,7 @@ public class PaymentService {
             this.tracer.close(cassandraSpan);
         }
 
-        LOGGER.info("Payment made");
+        log.info("Payment made");
 
         source.output().send(MessageBuilder.withPayload(new PaymentCompleteEvent(clientRef, creditCard, amount)).build());
     }

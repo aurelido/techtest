@@ -1,9 +1,5 @@
 package com.aabanegas.payment.util;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.InputStream;
 import java.security.Key;
 import java.security.KeyStore;
@@ -12,16 +8,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
-@SuppressWarnings("WeakerAccess")
-public class JwtTestTokenGenerator {
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.extern.apachecommons.CommonsLog;
 
-    private static final Log LOGGER = LogFactory.getLog(JwtTestTokenGenerator.class);
+@CommonsLog
+public class JwtTestTokenGenerator {
 
     private static ResourceLoader resourceLoader = new DefaultResourceLoader();
 
@@ -36,16 +35,10 @@ public class JwtTestTokenGenerator {
      */
     public static void main(String[] args) throws KeyStoreException {
         Map<String, String> claims = new HashMap<>();
-        claims.put("clientRef", "clientReTestf");
+        claims.put("clientRef", "test");
 
         //Generate token with embedded keystore
-        LOGGER.info(generateToken(claims));
-
-        //Generate token with symmetric key
-        //LOGGER.info(generateToken(SignatureAlgorithm.HS256, "dGVzdC1rZXk=", claims));
-
-        //Generate token with RS512 algorithm and default key
-        //LOGGER.info(generateToken(SignatureAlgorithm.RS512, "classpath:test-keystore.jks", "password", "testKey", claims));
+        log.info(generateToken(claims));
     }
 
     /**

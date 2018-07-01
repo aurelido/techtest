@@ -1,5 +1,12 @@
 package com.aabanegas.payment.service;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -10,14 +17,10 @@ import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 
-import com.aabanegas.payment.model.AccountReference;
+import com.aabanegas.payment.model.CreditCard;
 import com.aabanegas.payment.model.PaymentEvent;
 import com.aabanegas.payment.repository.PaymentEventRepository;
-import com.aabanegas.payment.service.PaymentService;
 import com.aabanegas.payment.util.PaymentUtil;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
 
 public class PaymentServiceTest {
 
@@ -45,8 +48,8 @@ public class PaymentServiceTest {
 
     @Test
     public void makePayment() throws Exception {
-        paymentService.makePayment(new AccountReference(PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_1),
-                new AccountReference(PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_2), 123.45);
+    	CreditCard creditCard = new CreditCard(PaymentUtil.VALID_CREDIT_CARD_NUMBER, PaymentUtil.VALID_CREDIT_CARD_EXPIRY_YEAR, PaymentUtil.VALID_CREDIT_CARD_EXPIRY_MONTH);
+        paymentService.makePayment(PaymentUtil.VALID_CLIENT_REFERENCE, creditCard, 123.45);
         verify(source.output()).send(any(Message.class));
         verify(paymentEventRepository, times(2)).save(any(PaymentEvent.class));
         verify(tracer).createSpan(anyString());

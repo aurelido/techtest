@@ -2,8 +2,6 @@ package com.aabanegas.payment.web;
 
 import javax.validation.Valid;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,12 +17,12 @@ import com.aabanegas.payment.model.Payment;
 import com.aabanegas.payment.model.ValidationError;
 import com.aabanegas.payment.service.PaymentService;
 
+import lombok.extern.apachecommons.CommonsLog;
 
+@CommonsLog
 @RestController
 @RequestMapping({ "/", "/payment" })
 public class PaymentController {
-
-	private static final Log logger = LogFactory.getLog(PaymentController.class);
 
     private static final String INVALID_REQUEST = "Invalid request";
 
@@ -38,7 +36,7 @@ public class PaymentController {
     @RequestMapping(method = RequestMethod.POST, consumes = "application/json")
 	public Payment processPayment(@Valid @RequestBody Payment payment) {
 
-    	logger.info("Processing payment: " + payment);
+    	log.info("Processing payment: " + payment);
         paymentService.makePayment(payment.getClientRef(), payment.getCreditCard(), payment.getAmount());
         return payment;
     }

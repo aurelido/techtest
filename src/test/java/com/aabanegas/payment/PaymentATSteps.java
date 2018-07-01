@@ -1,8 +1,9 @@
 package com.aabanegas.payment;
 
-import static com.aabanegas.payment.util.PaymentUtil.VALID_TEST_BIC;
-import static com.aabanegas.payment.util.PaymentUtil.VALID_TEST_IBAN_1;
-import static com.aabanegas.payment.util.PaymentUtil.VALID_TEST_IBAN_2;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CLIENT_REFERENCE;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CREDIT_CARD_EXPIRY_MONTH;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CREDIT_CARD_EXPIRY_YEAR;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CREDIT_CARD_NUMBER;
 import static org.junit.Assert.assertEquals;
 
 import java.net.MalformedURLException;
@@ -42,10 +43,6 @@ public class PaymentATSteps {
     private Payment payment;
     private ResponseEntity<Payment> responseEntity;
 
-    private static final String PROPERTY_KAFKA_IP = "CI_KAFKA_IP";
-    private static final String PROPERTY_KAFKA_PORT = "CI_KAFKA_PORT";
-    private static final String PROPERTY_KAFKA_TOPIC = "CI_KAFKA_TOPIC";
-
     private static final String PROPERTY_CASSANDRA_IP = "CI_CASSANDRA_IP";
     private static final String PROPERTY_CASSANDRA_PORT = "CI_CASSANDRA_PORT";
     private static final String PROPERTY_CASSANDRA_KEYSPACE = "CI_CASSANDRA_KEYSPACE";
@@ -67,7 +64,7 @@ public class PaymentATSteps {
 
     private void initializeCassandra() {
         String cassandraIPProperty = System.getenv().get(PROPERTY_CASSANDRA_IP);
-        String cassandraIP = cassandraIPProperty != null ? cassandraIPProperty : "192.168.99.100";
+        String cassandraIP = cassandraIPProperty != null ? cassandraIPProperty : "localhost";
 
         String cassandraPortString = System.getenv().get(PROPERTY_CASSANDRA_PORT);
         int cassandraPort = cassandraPortString != null ? Integer.parseInt(cassandraPortString) : 9042;
@@ -92,7 +89,7 @@ public class PaymentATSteps {
         String jwt = JwtTestTokenGenerator.generateToken(SignatureAlgorithm.HS512, "test-key", claims);
         HttpHeaders headers = new HttpHeaders();
         headers.add("AUTHORIZATION", BEARER + jwt);
-        payment = PaymentUtil.createPayment(VALID_TEST_BIC, VALID_TEST_IBAN_1, VALID_TEST_BIC, VALID_TEST_IBAN_2, 123.45);
+        payment = PaymentUtil.createPayment(VALID_CLIENT_REFERENCE, VALID_CREDIT_CARD_NUMBER, VALID_CREDIT_CARD_EXPIRY_YEAR, VALID_CREDIT_CARD_EXPIRY_MONTH, 123.45);
         HttpEntity<Payment> entity = new HttpEntity<>(payment, headers);
 
         responseEntity = template.exchange(url.toString(), HttpMethod.POST, entity, Payment.class);

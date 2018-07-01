@@ -1,15 +1,15 @@
 package com.aabanegas.payment;
 
-import com.aabanegas.payment.model.Payment;
-import com.aabanegas.payment.model.PaymentCompleteEvent;
-import com.aabanegas.payment.model.ValidationError;
-import com.aabanegas.payment.util.JwtTestTokenGenerator;
-import com.aabanegas.payment.util.PaymentUtil;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CLIENT_REFERENCE;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CREDIT_CARD_EXPIRY_MONTH;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CREDIT_CARD_EXPIRY_YEAR;
+import static com.aabanegas.payment.util.PaymentUtil.VALID_CREDIT_CARD_NUMBER;
+import static org.junit.Assert.assertEquals;
 
-import io.jsonwebtoken.SignatureAlgorithm;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cassandraunit.spring.CassandraDataSet;
 import org.cassandraunit.spring.CassandraUnitDependencyInjectionIntegrationTestExecutionListener;
 import org.cassandraunit.spring.EmbeddedCassandra;
@@ -19,23 +19,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.cloud.stream.messaging.Source;
-import org.springframework.cloud.stream.test.binder.MessageCollector;
-import org.springframework.http.*;
-import org.springframework.messaging.Message;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import com.aabanegas.payment.model.Payment;
+import com.aabanegas.payment.model.ValidationError;
+import com.aabanegas.payment.util.JwtTestTokenGenerator;
+import com.aabanegas.payment.util.PaymentUtil;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import io.jsonwebtoken.SignatureAlgorithm;
 
-@SuppressWarnings("SpringJavaAutowiredMembersInspection")
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {"cassandra.port=9142", "spring.zipkin.enabled=false"})
@@ -54,68 +56,48 @@ public class PaymentMsApplicationIT {
     private TestRestTemplate restTemplate;
 
     @Autowired
-    private Source source;
-
-    @Autowired
-    private MessageCollector messageCollector;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     Session session;
 
     @Value("${com.aabanegas.payments.security.jwt.signing-key-base64}")
     String base64EncodedSigningKey;
 
-    @Value("${com.aabanegas.payments.security.jwt.client-ref:clientRef}")
-    String userClaim;
-
-    @SuppressWarnings("unchecked")
     @Test
     public void testValidRequest() throws IOException {
         checkCassandraRows(0);
         Double amount = 123.45;
-        Payment payment = createValidPayment();
+        Payment payment = PaymentUtil.createValidPayment(amount);
 
         //http
-        ResponseEntity<Payment> paymentResponseEntity = sendRequest(payment, Payment.class, generateValidToken());
+        ResponseEntity<Payment> paymentResponseEntity = sendRequest(payment, Payment.class, PaymentUtil.generateValidToken(base64EncodedSigningKey));
         assertEquals(HttpStatus.OK, paymentResponseEntity.getStatusCode());
         assertEquals(payment, paymentResponseEntity.getBody());
 
-        //kafka
-        Message<String> paymentEventMessage = (Message<String>) messageCollector.forChannel(source.output()).poll();
-        assertNotNull(paymentEventMessage);
-        PaymentCompleteEvent paymentCompleteEvent = objectMapper.readValue(paymentEventMessage.getPayload(), PaymentCompleteEvent.class);
-        assertEquals(payment.getDebitAccount(), paymentCompleteEvent.getDebitAccount());
-        assertEquals(payment.getCreditAccount(), paymentCompleteEvent.getCreditAccount());
-        assertEquals(amount, paymentCompleteEvent.getAmount());
         //cassandra
         checkCassandraRows(2);
     }
 
     @Test
     public void testInvalidRequest() {
-        Payment payment = PaymentUtil.createPayment(PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_1, PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_2, null);
-        ResponseEntity<ValidationError> paymentResponseEntity = sendRequest(payment, ValidationError.class, generateValidToken());
+    	Payment payment = PaymentUtil.createPayment(VALID_CLIENT_REFERENCE, VALID_CREDIT_CARD_NUMBER, VALID_CREDIT_CARD_EXPIRY_YEAR, VALID_CREDIT_CARD_EXPIRY_MONTH, null);
+        ResponseEntity<ValidationError> paymentResponseEntity = sendRequest(payment, ValidationError.class, PaymentUtil.generateValidToken(base64EncodedSigningKey));
 
         assertEquals(HttpStatus.BAD_REQUEST, paymentResponseEntity.getStatusCode());
         assertEquals(new ValidationError("Invalid request"), paymentResponseEntity.getBody());
     }
 
     @Test
-    public void testInvalidIbanRequest() {
-        Payment payment = PaymentUtil.createPayment(PaymentUtil.VALID_TEST_BIC, "INVALID", PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_2, 123.45);
-        ResponseEntity<ValidationError> paymentResponseEntity = sendRequest(payment, ValidationError.class, generateValidToken());
+    public void testInvalidClientRefRequest() {
+    	Payment payment = PaymentUtil.createPayment("INVALID", VALID_CREDIT_CARD_NUMBER, VALID_CREDIT_CARD_EXPIRY_YEAR, VALID_CREDIT_CARD_EXPIRY_MONTH, 123.45);
+        ResponseEntity<ValidationError> paymentResponseEntity = sendRequest(payment, ValidationError.class, PaymentUtil.generateValidToken(base64EncodedSigningKey));
 
         assertEquals(HttpStatus.BAD_REQUEST, paymentResponseEntity.getStatusCode());
         assertEquals(new ValidationError("Invalid request"), paymentResponseEntity.getBody());
     }
 
     @Test
-    public void testInvalidBicRequest() {
-        Payment payment = PaymentUtil.createPayment("INVALID", PaymentUtil.VALID_TEST_IBAN_1, PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_2, 123.45);
-        ResponseEntity<ValidationError> paymentResponseEntity = sendRequest(payment, ValidationError.class, generateValidToken());
+    public void testInvalidCreditCardRequest() {
+        Payment payment = PaymentUtil.createPayment(VALID_CLIENT_REFERENCE, "INVALID", VALID_CREDIT_CARD_EXPIRY_YEAR, VALID_CREDIT_CARD_EXPIRY_MONTH, 123.45);
+        ResponseEntity<ValidationError> paymentResponseEntity = sendRequest(payment, ValidationError.class, PaymentUtil.generateValidToken(base64EncodedSigningKey));
 
         assertEquals(HttpStatus.BAD_REQUEST, paymentResponseEntity.getStatusCode());
         assertEquals(new ValidationError("Invalid request"), paymentResponseEntity.getBody());
@@ -123,7 +105,7 @@ public class PaymentMsApplicationIT {
 
     @Test
     public void testJWTAbsent() {
-        Payment payment = createValidPayment();
+        Payment payment = PaymentUtil.createValidPayment(123.45);
 
         //http
         ResponseEntity<Payment> paymentResponseEntity = sendRequest(payment, Payment.class, null);
@@ -132,9 +114,9 @@ public class PaymentMsApplicationIT {
 
     @Test
     public void testJWTInvalid() {
-        Payment payment = createValidPayment();
+        Payment payment = PaymentUtil.createValidPayment(123.45);
         Map<String, String> claims = new HashMap<>();
-        claims.put(userClaim, "TEST");
+        claims.put(VALID_CLIENT_REFERENCE, "TEST");
         String token = JwtTestTokenGenerator.generateToken(SignatureAlgorithm.HS512, "invalid-key", claims);
 
         //http
@@ -156,13 +138,4 @@ public class PaymentMsApplicationIT {
         assertEquals(rows, resultSet.all().size());
     }
 
-    private Payment createValidPayment() {
-        return PaymentUtil.createPayment(PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_1, PaymentUtil.VALID_TEST_BIC, PaymentUtil.VALID_TEST_IBAN_2, 123.45);
-    }
-
-    private String generateValidToken() {
-        Map<String, String> claims = new HashMap<>();
-        claims.put(userClaim, "TEST");
-        return JwtTestTokenGenerator.generateToken(SignatureAlgorithm.HS512, base64EncodedSigningKey, claims);
-    }
 }
