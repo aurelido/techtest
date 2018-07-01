@@ -51,7 +51,7 @@ public class PaymentServiceTest {
     	CreditCard creditCard = new CreditCard(PaymentUtil.VALID_CREDIT_CARD_NUMBER, PaymentUtil.VALID_CREDIT_CARD_EXPIRY_YEAR, PaymentUtil.VALID_CREDIT_CARD_EXPIRY_MONTH);
         paymentService.makePayment(PaymentUtil.VALID_CLIENT_REFERENCE, creditCard, 123.45);
         verify(source.output()).send(any(Message.class));
-        verify(paymentEventRepository, times(2)).save(any(PaymentEvent.class));
+        verify(paymentEventRepository, times(1)).save(any(PaymentEvent.class));
         verify(tracer).createSpan(anyString());
         verify(span, times(2)).tag(anyString(), anyString());
         verify(tracer).close(span);

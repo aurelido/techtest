@@ -36,6 +36,8 @@
 		<dockerfile-maven-plugin.version>1.4.3</dockerfile-maven-plugin.version>
 		<jacoco-maven-plugin.version>0.8.1</jacoco-maven-plugin.version>
 		<sonar-maven-plugin.version>3.4.0.905</sonar-maven-plugin.version>
+		
+		<project.testresult.directory>/target/resultTest</project.testresult.directory>
 	</properties>
 
 	<dependencies>
